@@ -27,6 +27,11 @@ input:
       consumer_secret: ""
       enabled: false
       request_url: ""
+    oauth2:
+      client_key: ""
+      client_secret: ""
+      enabled: false
+      token_url: ""
     payload: ""
     proxy_url: ""
     rate_limit: ""
@@ -65,7 +70,7 @@ output:
     batching:
       byte_size: 0
       check: ""
-      count: 1
+      count: 0
       period: ""
       processors: []
     copy_response_headers: false
@@ -81,6 +86,11 @@ output:
       consumer_secret: ""
       enabled: false
       request_url: ""
+    oauth2:
+      client_key: ""
+      client_secret: ""
+      enabled: false
+      token_url: ""
     propagate_response: false
     proxy_url: ""
     rate_limit: ""

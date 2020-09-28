@@ -30,7 +30,7 @@ module.exports = {
     colorMode: {
       defaultMode: 'light',
     },
-    image: 'img/logo_hero.png',
+    image: 'img/og_img.png',
     navbar: {
       title: 'Benthos',
       logo: {
@@ -42,12 +42,18 @@ module.exports = {
         {to: 'cookbooks', label: 'Cookbooks', position: 'left'},
         {to: 'blog', label: 'Blog', position: 'left'},
         {to: 'videos', label: 'Videos', position: 'left'},
+        {to: 'community', label: 'Community', position: 'right'},
         {to: 'https://lab.benthos.dev', label: 'Lab', position: 'right'},
-        {to: 'https://github.com/Jeffail/benthos/releases/latest', label: 'Download', position: 'right'},
+        {
+          href: 'https://github.com/Jeffail/benthos/releases/latest',
+          position: 'right',
+          className: 'header-download-link header-icon-link',
+          'aria-label': 'Download',
+        },
         {
           href: 'https://github.com/Jeffail/benthos',
           position: 'right',
-          className: 'header-github-link',
+          className: 'header-github-link header-icon-link',
           'aria-label': 'GitHub repository',
         },
       ],

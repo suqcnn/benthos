@@ -25,13 +25,11 @@ type HTTPClientConfig struct {
 
 // NewHTTPClientConfig creates a new HTTPClientConfig with default values.
 func NewHTTPClientConfig() HTTPClientConfig {
-	batching := batch.NewPolicyConfig()
-	batching.Count = 1
 	return HTTPClientConfig{
 		Config:            client.NewConfig(),
 		MaxInFlight:       1, // TODO: Increase this default?
 		PropagateResponse: false,
-		Batching:          batching,
+		Batching:          batch.NewPolicyConfig(),
 	}
 }
 
@@ -125,6 +123,7 @@ func (h *HTTPClient) WriteWithContext(ctx context.Context, msg types.Message) er
 // CloseAsync shuts down the HTTPClient output and stops processing messages.
 func (h *HTTPClient) CloseAsync() {
 	close(h.closeChan)
+	h.client.CloseAsync()
 }
 
 // WaitForClose blocks until the HTTPClient output has closed down.

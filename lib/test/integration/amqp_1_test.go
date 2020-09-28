@@ -1,111 +1,72 @@
-// +build integration
-
 package integration
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/Azure/go-amqp"
-	"github.com/Jeffail/benthos/v3/lib/input/reader"
-	"github.com/Jeffail/benthos/v3/lib/log"
-	"github.com/Jeffail/benthos/v3/lib/metrics"
-	"github.com/Jeffail/benthos/v3/lib/output/writer"
 	"github.com/ory/dockertest/v3"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestAMQP1Integration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
-
+var _ = registerIntegrationTest("amqp_1", func(t *testing.T) {
 	t.Parallel()
 
 	pool, err := dockertest.NewPool("")
-	if err != nil {
-		t.Skipf("Could not connect to docker: %s", err)
-	}
+	require.NoError(t, err)
+
 	pool.MaxWait = time.Second * 30
-
 	resource, err := pool.Run("rmohr/activemq", "latest", nil)
-	if err != nil {
-		t.Fatalf("Could not start resource: %s", err)
-	}
-	defer func() {
-		if err = pool.Purge(resource); err != nil {
-			t.Logf("Failed to clean up docker resource: %v", err)
-		}
-	}()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		assert.NoError(t, pool.Purge(resource))
+	})
+
 	resource.Expire(900)
-
-	url := fmt.Sprintf("amqp://guest:guest@localhost:%v/", resource.GetPort("5672/tcp"))
-
-	if err = pool.Retry(func() error {
-		client, err := amqp.Dial(url)
+	require.NoError(t, pool.Retry(func() error {
+		client, err := amqp.Dial(fmt.Sprintf("amqp://guest:guest@localhost:%v/", resource.GetPort("5672/tcp")))
 		if err == nil {
 			client.Close()
 		}
 		return err
-	}); err != nil {
-		t.Fatalf("Could not connect to docker resource: %s", err)
-	}
+	}))
 
-	t.Run("TestAMQP1StreamsALOAsync", func(te *testing.T) {
-		testAMQP1StreamsALOAsync(url, te)
+	template := `
+output:
+  amqp_1:
+    url: amqp://guest:guest@localhost:$PORT/
+    target_address: "queue:/$ID"
+    max_in_flight: $MAX_IN_FLIGHT
+
+input:
+  amqp_1:
+    url: amqp://guest:guest@localhost:$PORT/
+    source_address: "queue:/$ID"
+`
+	suite := integrationTests(
+		integrationTestOpenClose(),
+		integrationTestSendBatch(10),
+		integrationTestStreamSequential(1000),
+		integrationTestStreamParallel(1000),
+		integrationTestStreamParallelLossy(1000),
+		integrationTestStreamParallelLossyThroughReconnect(1000),
+	)
+	suite.Run(
+		t, template,
+		testOptSleepAfterInput(100*time.Millisecond),
+		testOptSleepAfterOutput(100*time.Millisecond),
+		testOptPort(resource.GetPort("5672/tcp")),
+	)
+	t.Run("with max in flight", func(t *testing.T) {
+		t.Parallel()
+		suite.Run(
+			t, template,
+			testOptSleepAfterInput(100*time.Millisecond),
+			testOptSleepAfterOutput(100*time.Millisecond),
+			testOptPort(resource.GetPort("5672/tcp")),
+			testOptMaxInFlight(10),
+		)
 	})
-}
-
-func testAMQP1StreamsALOAsync(url string, t *testing.T) {
-	target := "queue:/benthos_test_streams_alo_async"
-
-	outConf := writer.NewAMQP1Config()
-	outConf.URL = url
-	outConf.TargetAddress = target
-
-	inConf := reader.NewAMQP1Config()
-	inConf.URL = url
-	inConf.SourceAddress = target
-
-	outputCtr := func() (mOutput writer.Type, err error) {
-		if mOutput, err = writer.NewAMQP1(outConf, log.Noop(), metrics.Noop()); err != nil {
-			return
-		}
-		err = mOutput.Connect()
-		return
-	}
-	inputCtr := func() (mInput reader.Async, err error) {
-		ctx, done := context.WithTimeout(context.Background(), time.Second*60)
-		defer done()
-
-		if mInput, err = reader.NewAMQP1(inConf, log.Noop(), metrics.Noop()); err != nil {
-			return
-		}
-		err = mInput.ConnectWithContext(ctx)
-		return
-	}
-
-	checkALOSynchronousAsync(outputCtr, inputCtr, t)
-
-	target = "queue:/benthos_test_streams_alo_with_dc_async"
-
-	outConf.TargetAddress = target
-	inConf.SourceAddress = target
-
-	checkALOSynchronousAndDieAsync(outputCtr, inputCtr, t)
-
-	target = "queue:/benthos_test_streams_alo_parallel_async"
-
-	outConf.TargetAddress = target
-	inConf.SourceAddress = target
-
-	checkALOParallelAsync(outputCtr, inputCtr, 50, t)
-
-	target = "queue:/benthos_test_streams_alo_parallel_async_parallel_writes"
-
-	outConf.TargetAddress = target
-	inConf.SourceAddress = target
-
-	checkALOAsyncParallelWrites(outputCtr, inputCtr, 50, t)
-}
+})

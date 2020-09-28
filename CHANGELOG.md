@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- OAuth 2.0 using the client credentials token flow is now supported by the `http_client` input and output, and the `http` processor.
+- Method `format_timestamp` added to Bloblang.
+
+## 3.29.0 - 2020-09-21
+
+### Added
+
+- New cli flag `log.level` for overriding the configured logging level.
+- New integration test suite (much more dapper and also a bit more swanky than the last).
+
+### Changed
+
+- The default value for `batching.count` fields is now zero, which means adding a non-count based batching mechanism without also explicitly overriding `count` no longer incorrectly caps batches at one message. This change is backwards compatible in that working batching configs will not change in behaviour. However, a broken batching config will now behave as expected.
+
+### Fixed
+
+- Improved Bloblang parser error messages for function and method parameters.
+
 ## 3.28.0 - 2020-09-14
 
 ### Added
