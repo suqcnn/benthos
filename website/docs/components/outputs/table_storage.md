@@ -34,6 +34,7 @@ output:
   table_storage:
     storage_account: ""
     storage_access_key: ""
+    storage_connection_string: ""
     table_name: ""
     partition_key: ""
     row_key: ""
@@ -55,6 +56,7 @@ output:
   table_storage:
     storage_account: ""
     storage_access_key: ""
+    storage_connection_string: ""
     table_name: ""
     partition_key: ""
     row_key: ""
@@ -73,15 +75,18 @@ output:
 </TabItem>
 </Tabs>
 
+Only one authentication method is required, `storage_connection_string` or `storage_account` and `storage_access_key`. If both are set then the `storage_connection_string` is given priority.
+
 In order to set the `table_name`,  `partition_key` and `row_key` 
 you can use function interpolations described [here](/docs/configuration/interpolation#bloblang-queries), which are
 calculated per message of a batch.
 
 If the `properties` are not set in the config, all the `json` fields
 are marshaled and stored in the table, which will be created if it does not exist.
+
 The `object` and `array` fields are marshaled as strings. e.g.:
 
-The json message:
+The JSON message:
 ``` yaml
 {
   "foo": 55,
@@ -93,7 +98,7 @@ The json message:
 }
 ```
 
-will store in the table the following properties:
+Will store in the table the following properties:
 ``` yaml
 foo: '55'
 bar: '{ "baz": "a", "bez": "b" }'
@@ -102,10 +107,10 @@ diz: '["a", "b"]'
 
 It's also possible to use function interpolations to get or transform the properties values, e.g.:
 
-``` yaml
+```yaml
 properties:
-	device: '${! json("device") }'
-	timestamp: '${! json("timestamp") }'
+  device: '${! json("device") }'
+  timestamp: '${! json("timestamp") }'
 ```
 
 ## Performance
@@ -122,7 +127,7 @@ Batches can be formed at both the input and output level. You can find out more
 
 ### `storage_account`
 
-The storage account to upload messages to.
+The storage account to upload messages to. This field is ignored if `storage_connection_string` is set.
 
 
 Type: `string`  
@@ -130,7 +135,15 @@ Default: `""`
 
 ### `storage_access_key`
 
-The storage account access key.
+The storage account access key. This field is ignored if `storage_connection_string` is set.
+
+
+Type: `string`  
+Default: `""`  
+
+### `storage_connection_string`
+
+A storage account connection string. This field is required if `storage_account` and `storage_access_key` are not set.
 
 
 Type: `string`  

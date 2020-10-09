@@ -406,11 +406,13 @@ func integrationTestStreamParallelLossyThroughReconnect(n int) testDefinition {
 				closeConnectors(t, input, nil)
 
 				input = initInput(t, env)
-				defer closeConnectors(t, input, nil)
+				t.Cleanup(func() {
+					closeConnectors(t, input, nil)
+				})
 
 				t.Log("Finished first loop, looping through rejected messages.")
 				for len(set) > 0 {
-					messageInSet(t, true, env.allowDuplicateMessages, receiveMessage(env.ctx, t, input.TransactionChan(), nil), set)
+					messageInSet(t, true, true, receiveMessage(env.ctx, t, input.TransactionChan(), nil), set)
 				}
 			}()
 
